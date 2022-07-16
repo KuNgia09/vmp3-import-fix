@@ -76,7 +76,8 @@ bool PatternSearch::SearchWithHandler(
             //out.emplace_back( reinterpret_cast<ptr_t>(res) );
         	running = !handler( reinterpret_cast<ptr_t>(res) );
 
-        cstart = res + _pattern.size();
+        // cstart = res + _pattern.size();
+        cstart = res + 1;
     }
 
     return !running;
@@ -84,7 +85,7 @@ bool PatternSearch::SearchWithHandler(
 
 /// <summary>
 /// Full pattern match, no wildcards.
-/// Uses Boyer–Moore–Horspool algorithm.
+/// Uses Boyerï¿½Mooreï¿½Horspool algorithm.
 /// </summary>
 /// <param name="scanStart">Starting address</param>
 /// <param name="scanSize">Size of region to scan</param>
@@ -296,7 +297,7 @@ size_t PatternSearch::Search(
 
 /// <summary>
 /// Full pattern match, no wildcards.
-/// Uses Boyer–Moore–Horspool algorithm.
+/// Uses Boyerï¿½Mooreï¿½Horspool algorithm.
 /// </summary>
 /// <param name="scanStart">Starting address</param>
 /// <param name="scanSize">Size of region to scan</param>
