@@ -39,4 +39,4 @@ Debug/
 build/
 obj/
 .vs/
-*.log
+*.txt
