@@ -39,3 +39,4 @@ Debug/
 build/
 obj/
 .vs/
+*.log
