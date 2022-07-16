@@ -1,0 +1,6 @@
+[submodule "vendor/BlackBone"]
+	path = vendor/BlackBone
+	url = https://github.com/DarthTon/Blackbone.git
+[submodule "Blackbone"]
+	path = Blackbone
+	url = https://github.com/woxihuannisja/Blackbone.git
