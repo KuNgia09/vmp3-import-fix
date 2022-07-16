@@ -22,7 +22,6 @@
 *.tlog
 *.pdb
 *.cer
-*.lib
 *.sbr
 *.sdf
 *.opensdf
