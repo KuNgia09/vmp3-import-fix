@@ -8,19 +8,19 @@ Note: this tool does not dump and rebuild import directory.
 
 ## Before
 
-![image-20220716105829428](D:\Project\vmp3-import-fix\README.assets\image-20220716105829428.png)
+![image-20220716105829428]( README.assets\image-20220716105829428.png)
 
 After
 
-![image-20220716105855534](D:\Project\vmp3-import-fix\README.assets\image-20220716105855534.png)
+![image-20220716105855534]( README.assets\image-20220716105855534.png)
 
 new IAT:
 
-![image-20220716110043838](D:\Project\vmp3-import-fix\README.assets\image-20220716110043838.png)
+![image-20220716110043838]( README.assets\image-20220716110043838.png)
 
 ## Usage
 
-![image-20220716110450903](D:\Project\vmp3-import-fix\README.assets\image-20220716110450903.png)
+![image-20220716110450903]( README.assets\image-20220716110450903.png)
 
 **-p**:target process pid
 
@@ -36,7 +36,7 @@ Example:
 
 when target program is reach to OEP
 
-![image-20220716111549696](D:\Project\vmp3-import-fix\README.assets\image-20220716111549696.png)
+![image-20220716111549696]( README.assets\image-20220716111549696.png)
 
 execute this tool
 
@@ -46,9 +46,9 @@ execute this tool
 
 you can see log  file in `log/logger.txt` 
 
-![image-20220716111801572](D:\Project\vmp3-import-fix\README.assets\image-20220716111801572.png)
+![image-20220716111801572](README.assets\image-20220716111801572.png)
 
-![image-20220716111829226](D:\Project\vmp3-import-fix\README.assets\image-20220716111829226.png)
+![image-20220716111829226]( README.assets\image-20220716111829226.png)
 
 
 
