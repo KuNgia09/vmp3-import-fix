@@ -42,6 +42,9 @@
     <ClCompile Include="StringConversion.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="unicorn_emulator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ProcessAccessHelp.h">
@@ -72,6 +75,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="argparse.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="spdlog_wrapper.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="vmp3-import-fix.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="unicorn_emulator.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
