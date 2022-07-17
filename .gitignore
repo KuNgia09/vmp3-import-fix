@@ -40,3 +40,4 @@ build/
 obj/
 .vs/
 log/
+Release/
