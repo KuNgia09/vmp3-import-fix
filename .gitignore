@@ -30,8 +30,8 @@
 *.exe
 *.out
 *.app
-Debug/
-/x64
+Debug
+x64
 *.ilk
 *.pdb
 *.opendb
@@ -40,4 +40,4 @@ build/
 obj/
 .vs/
 log/
-Release/
+Release
