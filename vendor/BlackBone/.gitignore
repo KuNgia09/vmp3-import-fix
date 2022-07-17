@@ -85,4 +85,4 @@ GeneratedFiles*/
 *.db-wal
 *.json
 !Debug
-!dll
+!*.dll
