@@ -84,3 +84,4 @@ GeneratedFiles*/
 *.db-shm
 *.db-wal
 *.json
+!Debug
