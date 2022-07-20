@@ -1,6 +1,7 @@
 ﻿
 #include<iostream>
 #include <stdio.h>
+#include<wchar.h>
 #include<vector>
 #include <inttypes.h>
 #include<algorithm>
@@ -18,6 +19,9 @@
 #include"vmp3-import-fix.h"
 #include"unicorn_emulator.h"
 #include"spdlog_wrapper.h"
+#include"PeParser.h"
+#include"dump.h"
+
 
 
 //#define SPDLOG_WCHAR_TO_UTF8_SUPPORT
@@ -343,22 +347,26 @@ void patch_pattern_address() {
 BOOL buildIAT() {
 	BOOL result;
 	int num = 0;
+	int error_code;
+	//获取iat 表导入的每个dll使用的api函数个数
 	for (auto iat_import_echmodule_api : iat_import_echmodule_api_map) {
 		num += iat_import_echmodule_api.second.size();
 
 	}
 	num += iat_import_module_list.size();
-
-	//IAT默认保存在.vmp0 section 如果不在 分则配空间存储IAT
+	g_iat_size = num * sizeof(ULONG_PTR);
+	//IAT默认保存在.vmp0 section 如果不在 则分配空间存储IAT
 	if (g_iat_address == 0) {
-		g_iat_address = (ULONG_PTR)VirtualAllocEx(ProcessAccessHelp::hProcess, NULL, sizeof(ULONG_PTR) * num + 0x100, MEM_COMMIT, PAGE_READWRITE);
+		g_iat_address = (ULONG_PTR)VirtualAllocEx(ProcessAccessHelp::hProcess, NULL, num * sizeof(ULONG_PTR), MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+		printf("VirtualAlloc IAT address:%p\n", g_iat_address);
 		if (g_iat_address == 0) {
-			SPDLOG_ERROR("[-]target process virtual alloc failed:{0}\n", GetLastError());
+			error_code = GetLastError();
+			SPDLOG_ERROR("[-]target process virtual alloc failed:{0}\n", error_code);
 			return false;
 		}
 	}
 
-	g_iat_size = num * sizeof(ULONG_PTR);
+	
 	SPDLOG_INFO("[+]IAT size:0x{0:x}, IAT address:0x{1:x}\n", g_iat_size, g_iat_address);
 
 	int size = (g_iat_size / 0x1000 + 1) * 0x1000;
@@ -434,6 +442,9 @@ void set_up() {
 }
 
 
+
+
+
 int main(int argc, char** argv)
 {
 	try {
@@ -464,6 +475,12 @@ int main(int argc, char** argv)
 		.help("new iat section ")
 		.default_value(std::string(".vmp0"));
 
+	program.add_argument("-d", "--dump")
+		.help("dump and fix IAT ")
+		.default_value(false)
+		.implicit_value(true);
+
+		
 
 	try
 	{
@@ -476,6 +493,9 @@ int main(int argc, char** argv)
 		std::exit(1);
 	}
 
+	
+
+	
 	auto pid = program.get<int>("--pid");
 	//pid = 5096;
 	auto exclude_sections = program.get<std::vector<std::string>>("--sections");
@@ -567,7 +587,12 @@ int main(int argc, char** argv)
 		}
 		handle_complex_iat();
 	
+		/*if (program["-d"] == true) {
+			const wchar_t* fullPath = target_m->fullPath.c_str();
+			const wchar_t* process_name = target_m->name.c_str();
+			dump_target_process(proc, fullPath);
 
+		}*/
 
 
 		get_iat_module();
@@ -583,6 +608,8 @@ int main(int argc, char** argv)
 		SPDLOG_INFO("start patch pattern address");
 		patch_pattern_address();
 
+
+		
 
 
 		free(buffer);

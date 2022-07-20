@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="vmp3-import-fix.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="ProcessAccessHelp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -43,6 +40,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="unicorn_emulator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="vmp3_import_fix.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="dump.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -84,6 +87,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="unicorn_emulator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="dump.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

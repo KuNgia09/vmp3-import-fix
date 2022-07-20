@@ -161,19 +161,21 @@
     <ClCompile Include="ApiReader.cpp" />
     <ClCompile Include="Architecture.cpp" />
     <ClCompile Include="DeviceNameResolver.cpp" />
+    <ClCompile Include="dump.cpp" />
     <ClCompile Include="NativeWinApi.cpp" />
     <ClCompile Include="PeParser.cpp" />
     <ClCompile Include="ProcessAccessHelp.cpp" />
     <ClCompile Include="StringConversion.cpp" />
     <ClCompile Include="SystemInformation.cpp" />
     <ClCompile Include="unicorn_emulator.cpp" />
-    <ClCompile Include="vmp3-import-fix.cpp" />
+    <ClCompile Include="vmp3_import_fix.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiReader.h" />
     <ClInclude Include="Architecture.h" />
     <ClInclude Include="argparse.hpp" />
     <ClInclude Include="DeviceNameResolver.h" />
+    <ClInclude Include="dump.h" />
     <ClInclude Include="NativeWinApi.h" />
     <ClInclude Include="PeParser.h" />
     <ClInclude Include="ProcessAccessHelp.h" />
