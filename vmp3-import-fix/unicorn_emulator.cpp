@@ -8,11 +8,11 @@
 #include"spdlog_wrapper.h"
 #include<windows.h>
 #include"ApiReader.h"
-#include"vmp3-import-fix.h"
+#include"vmp3_import_fix.h"
 #include"unicorn_emulator.h"
 
 
-#define SPDLOG_LOG_FILE
+#define MYSPDLOG_LOG_FILE
 using namespace std;
 
 extern std::shared_ptr<spdlog::logger> logger;
@@ -21,7 +21,7 @@ uc_context* g_uc_context;
 
 extern ULONG_PTR g_iat_address;
 extern int g_iat_size;
-extern ULONG_PTR g_image_base;
+extern ULONG_PTR g_image_load_address;
 extern ULONG g_image_size;
 extern ULONG_PTR g_current_pattern_address;
 
@@ -68,7 +68,7 @@ BOOL check_api_valid(stdext::hash_multimap<DWORD_PTR, ApiInfo*>::iterator& it1, 
 
 static void hook_block(uc_engine* uc, uint64_t address, uint32_t size, void* user_data)
 {
-	//SPDLOG_ERROR(">>> Tracing basic block at 0x%" PRIx64 ", block size = 0x%x\n", address, size);
+	//MYSPDLOG_ERROR(">>> Tracing basic block at 0x%" PRIx64 ", block size = 0x%x\n", address, size);
 }
 
 
@@ -123,7 +123,7 @@ static void hook_code2(uc_engine* uc, uint64_t address, uint32_t size,
 {
 
 
-	SPDLOG_ERROR(">>> Tracing instruction at {0:x}, instruction size = {1:d}", address, size);
+	MYSPDLOG_ERROR(">>> Tracing instruction at {0:x}, instruction size = {1:d}", address, size);
 
 
 
@@ -149,7 +149,7 @@ static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type, uint64_t address,
 		// return true to indicate we want to continue
 		return true;
 	case UC_MEM_READ_UNMAPPED:
-		SPDLOG_ERROR(">>> Missing memory is being read at {0}, data size = {1}  ", address, size);
+		MYSPDLOG_ERROR(">>> Missing memory is being read at {0}, data size = {1}  ", address, size);
 
 
 		int size = 2 * 1024 * 1024;
@@ -161,13 +161,13 @@ static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type, uint64_t address,
 		// map this memory in with 2MB in size
 		address = address & 0xfffff000;
 		if (err = uc_mem_map(uc, address, size, UC_PROT_ALL)) {
-			SPDLOG_ERROR("Failed to write emulation code to memory, quit!,{0}:{1}\n", err, uc_strerror(err));
+			MYSPDLOG_ERROR("Failed to write emulation code to memory, quit!,{0}:{1}\n", err, uc_strerror(err));
 			return false;
 		}
 		// write machine code to be emulated to memory
 
 		if (err = uc_mem_write(uc, address, buffer, size)) {
-			SPDLOG_ERROR("Failed to write emulation code to memory, quit!,{0}:{1}\n", err, uc_strerror(err));
+			MYSPDLOG_ERROR("Failed to write emulation code to memory, quit!,{0}:{1}\n", err, uc_strerror(err));
 			return false;
 		}
 		// return true to indicate we want to continue
@@ -179,12 +179,12 @@ static bool hook_mem_invalid(uc_engine* uc, uc_mem_type type, uint64_t address,
 bool check_uc_emulate(uint64_t address) {
 	g_emulator_num++;
 	if (g_emulator_num > EMULATOR_NUM_MAX) {
-		SPDLOG_WARN("[-]pattern address 0x{0:x} run instruction num exceeded", g_current_pattern_address);
+		MYSPDLOG_WARN("[-]pattern address 0x{0:x} run instruction num exceeded", g_current_pattern_address);
 		return false;
 	}
 
-	if ((ULONG_PTR)address<g_image_base || (ULONG_PTR)address>(g_image_base + g_image_size)) {
-		SPDLOG_WARN("[-]pattern_address 0x{0:x} emulator ip out of range instruction:0x{1:x}", g_current_pattern_address, (ULONG_PTR)address);
+	if ((ULONG_PTR)address<g_image_load_address || (ULONG_PTR)address>(g_image_load_address + g_image_size)) {
+		MYSPDLOG_WARN("[-]pattern_address 0x{0:x} emulator ip out of range instruction:0x{1:x}", g_current_pattern_address, (ULONG_PTR)address);
 
 		return false;
 	}
@@ -192,10 +192,10 @@ bool check_uc_emulate(uint64_t address) {
 }
 
 static void hook_code_handle_complex_pattern_address(uc_engine* uc, uint64_t address, uint32_t size, void* user_data) {
-	int eflags;
-	int index;
+	
+	
 	ULONG_PTR esp_value;
-	ULONG_PTR eax_value;
+	
 	ULONG_PTR esp0;
 
 	char* apiName;
@@ -218,7 +218,7 @@ static void hook_code_handle_complex_pattern_address(uc_engine* uc, uint64_t add
 		BOOL status = check_api_valid(it1, esp0);
 		if (status) {
 			apiName = (*it1).second->name;
-			SPDLOG_WARN("Complex IAT api Found Pattern Address:{0:x},apiName:{1},apiAddress:{2:x},run insturction num:{3}", g_current_pattern_address, apiName, esp0, g_emulator_num);
+			MYSPDLOG_WARN("Complex IAT api Found Pattern Address:{0:x},apiName:{1},apiAddress:{2:x},run insturction num:{3}", g_current_pattern_address, apiName, esp0, g_emulator_num);
 			uc_emu_stop(uc);
 			return;
 		}
@@ -228,7 +228,7 @@ static void hook_code_handle_complex_pattern_address(uc_engine* uc, uint64_t add
 // callback for tracing instruction
 static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user_data)
 {
-	int eflags;
+	
 	int index;
 	ULONG_PTR esp_value;
 	ULONG_PTR eax_value;
@@ -286,7 +286,8 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 				iat_patch.reg_index = index;
 				iat_patch.api_address = mov_reg_value;
 				iat_patch.moduel_base = (*it1).second->module->modBaseAddr;
-				SPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:mov reg index:{1},mov_reg_value:{2:x} ENCRYPT MODE:push/pop call,apiName:{3}\n", g_current_pattern_address, index, mov_reg_value, apiName);
+				
+				MYSPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:mov reg index:{1},mov_reg_value:{2:x} ENCRYPT MODE:push/pop call,apiName:{3}\n", g_current_pattern_address, index, mov_reg_value, apiName);
 
 			}
 			else if (esp0 == g_current_pattern_address + 6) {
@@ -296,7 +297,8 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 				iat_patch.reg_index = index;
 				iat_patch.api_address = mov_reg_value;
 				iat_patch.moduel_base = (*it1).second->module->modBaseAddr;
-				SPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:mov reg index:{1},mov_reg_value:{2:x} ENCRYPT MODE:call ret,apiName:{3}\n", g_current_pattern_address, index, mov_reg_value, apiName);
+				
+				MYSPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:mov reg index:{1},mov_reg_value:{2:x} ENCRYPT MODE:call ret,apiName:{3}\n", g_current_pattern_address, index, mov_reg_value, apiName);
 
 			}
 			uc_emu_stop(uc);
@@ -320,7 +322,8 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 				iat_patch.patch_address = g_current_pattern_address - 1;
 				iat_patch.api_address = esp0;
 				iat_patch.moduel_base = (*it1).second->module->modBaseAddr;
-				SPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:call dword ptr  ENCRYPT MODE:push call,apiName:{1}\n", g_current_pattern_address, apiName);
+				
+				MYSPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:call dword ptr  ENCRYPT MODE:push call,apiName:{1}\n", g_current_pattern_address, apiName);
 
 			}
 			else if (esp4 == g_current_pattern_address + 6) {
@@ -329,7 +332,8 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 				iat_patch.patch_address = g_current_pattern_address;
 				iat_patch.api_address = esp0;
 				iat_patch.moduel_base = (*it1).second->module->modBaseAddr;
-				SPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:call dword ptr ENCRYPT MODE:call ret,apiName:{1}\n", g_current_pattern_address, apiName);
+				
+				MYSPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:call dword ptr ENCRYPT MODE:call ret,apiName:{1}\n", g_current_pattern_address, apiName);
 
 			}
 			uc_emu_stop(uc);
@@ -358,7 +362,8 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 			iat_patch.patch_address = g_current_pattern_address - 1;
 			iat_patch.api_address = esp0;
 			iat_patch.moduel_base = (*it1).second->module->modBaseAddr;
-			SPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:jmp dword ptr,ENCRYPT MODE:push call,apiName:{1}\n", g_current_pattern_address, apiName);
+			
+			MYSPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:jmp dword ptr,ENCRYPT MODE:push call,apiName:{1}\n", g_current_pattern_address, apiName);
 			uc_emu_stop(uc);
 		}
 		else {
@@ -366,7 +371,7 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 			iat_patch.patch_address = g_current_pattern_address;
 			iat_patch.api_address = esp0;
 			iat_patch.moduel_base = (*it1).second->module->modBaseAddr;
-			SPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:jmp dword ptr,ENCRYPT MODE:call ret,apiName:{1}\n", g_current_pattern_address, apiName);
+			MYSPDLOG_INFO("[+]pattern_adddress:{0:x},CALL IAT MODE:jmp dword ptr,ENCRYPT MODE:call ret,apiName:{1}\n", g_current_pattern_address, apiName);
 			uc_emu_stop(uc);
 		}
 
@@ -374,6 +379,7 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 	}
 
 	if (iat_patch.call_iat_mode != CALL_IAT_UNKNOWN) {
+		strncpy(iat_patch.api_name, (*it1).second->name, strlen((*it1).second->name));
 
 		iat_patch_list.push_back(iat_patch);
 	}
@@ -383,14 +389,14 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 
 void handle_complex_iat() {
 	if (g_complexPatternAddress.size() <= 0) {
-		SPDLOG_INFO("complex pattern address not found");
+		MYSPDLOG_INFO("complex pattern address not found");
 		return;
 	}
 	uc_hook_del(uc, trace2);
 	uc_hook_add(uc, &trace2, UC_HOOK_CODE, hook_code_handle_complex_pattern_address, NULL, 1, 0);
 
 	for (auto complex_pattern_address : g_complexPatternAddress) {
-		SPDLOG_INFO("complex_pattern_address:0x{0:x}", complex_pattern_address);
+		MYSPDLOG_INFO("complex_pattern_address:0x{0:x}", complex_pattern_address);
 		g_current_pattern_address = complex_pattern_address;
 		g_emulator_num = 0;
 		unicorn_emulate_pattern_address(complex_pattern_address);
@@ -403,7 +409,7 @@ void handle_complex_iat() {
 bool unicorn_emulator_init(void* peBuffer) {
 
 	uc_err err;
-	uint32_t tmp;
+	
 
 
 #ifdef _WIN64
@@ -414,34 +420,34 @@ bool unicorn_emulator_init(void* peBuffer) {
 
 
 	if (err) {
-		SPDLOG_ERROR("Failed on uc_open() with error returned: {:u}\n", err);
+		MYSPDLOG_ERROR("Failed on uc_open() with error returned: {:u}\n", err);
 		return false;
 	}
 
-	err = uc_mem_map(uc, g_image_base, g_image_size + 0x1000, UC_PROT_ALL);
+	err = uc_mem_map(uc, g_image_load_address, g_image_size + 0x1000, UC_PROT_ALL);
 
-	SPDLOG_INFO("[+]uc mem map memory range:0x{0:x}-0x{1:x}\n", g_image_base, g_image_base + g_image_size + 0x1000);
+	MYSPDLOG_INFO("[+]uc mem map memory range:0x{0:x}-0x{1:x}\n", g_image_load_address, g_image_load_address + g_image_size + 0x1000);
 
 
 	// write machine code to be emulated to memory
-	if (uc_mem_write(uc, g_image_base, peBuffer, g_image_size)) {
-		SPDLOG_ERROR("Failed to write emulation code to memory, quit!\n");
+	if (uc_mem_write(uc, g_image_load_address, peBuffer, g_image_size)) {
+		MYSPDLOG_ERROR("Failed to write emulation code to memory, quit!\n");
 		return false;
 	}
-	SPDLOG_INFO("[+]uc stack memory range:0x{0:x}-0x{1:x}\n", STACK_ADDR, STACK_ADDR + STACK_SIZE);
+	MYSPDLOG_INFO("[+]uc stack memory range:0x{0:x}-0x{1:x}\n", STACK_ADDR, STACK_ADDR + STACK_SIZE);
 
 	unicorn_stack_buffer = malloc(STACK_SIZE);
 	if (unicorn_stack_buffer == NULL) {
-		SPDLOG_ERROR("Failed to alloc stack space quit!\n");
+		MYSPDLOG_ERROR("Failed to alloc stack space quit!\n");
 		return false;
 	}
 	if (err = uc_mem_map(uc, STACK_ADDR, STACK_SIZE, UC_PROT_ALL)) {
-		SPDLOG_ERROR("Failed to mem stack mem quit!{0}:{1}\n", err, uc_strerror(err));
+		MYSPDLOG_ERROR("Failed to mem stack mem quit!{0}:{1}\n", err, uc_strerror(err));
 		return false;
 	}
 	memset(unicorn_stack_buffer, (int)STACK_INIT_VALUE, STACK_SIZE);
 	if (err = uc_mem_write(uc, STACK_ADDR, unicorn_stack_buffer, STACK_SIZE)) {
-		SPDLOG_ERROR("Failed to write stack data to memory, quit!{0}:{1}\n", err, uc_strerror(err));
+		MYSPDLOG_ERROR("Failed to write stack data to memory, quit!{0}:{1}\n", err, uc_strerror(err));
 		return false;
 	}
 	ULONG_PTR esp_value = STACK_ADDR + STACK_SIZE - sizeof(ULONG_PTR) * 100;
@@ -482,13 +488,13 @@ bool unicorn_emulator_init(void* peBuffer) {
 
 	err = uc_context_alloc(uc, &g_uc_context);
 	if (err) {
-		SPDLOG_ERROR("Failed on uc_context_alloc() with error returned: %u\n", err);
+		MYSPDLOG_ERROR("Failed on uc_context_alloc() with error returned: %u\n", err);
 		return false;
 	}
 
 	err = uc_context_save(uc, g_uc_context);
 	if (err) {
-		SPDLOG_ERROR("Failed on uc_context_save() with error returned: %u\n", err);
+		MYSPDLOG_ERROR("Failed on uc_context_save() with error returned: %u\n", err);
 		return false;
 	}
 	
@@ -514,24 +520,24 @@ void unicorn_emulate_pattern_address(ULONG_PTR patternAddress) {
 	// restore CPU context
 	err = uc_context_restore(uc, g_uc_context);
 	if (err) {
-		SPDLOG_ERROR("Failed on uc_context_restore() with error returned: %u\n", err);
+		MYSPDLOG_ERROR("Failed on uc_context_restore() with error returned: %u\n", err);
 		return;
 	}
 	//For Test
 	/*int r_eax = 0x1;
 	uc_reg_read(uc, UC_X86_REG_EAX, &r_eax);
-	SPDLOG_ERROR("After restore cpu context eax:%d\n",r_eax);*/
+	MYSPDLOG_ERROR("After restore cpu context eax:%d\n",r_eax);*/
 
 
 
 	//memset(unicorn_stack_buffer, 0xff, STACK_SIZE);
 	if (uc_mem_write(uc, STACK_ADDR, unicorn_stack_buffer, STACK_SIZE)) {
-		SPDLOG_ERROR("[-]Failed to write stack data to memory, quit!\n");
+		MYSPDLOG_ERROR("[-]Failed to write stack data to memory, quit!\n");
 		return;
 	}
-	err = uc_emu_start(uc, patternAddress, g_image_base + g_image_size - 1, 0, 0);
+	err = uc_emu_start(uc, patternAddress, g_image_load_address + g_image_size - 1, 0, 0);
 	if (err) {
-		SPDLOG_ERROR("[-]patternAddreess:0x{0:x},Failed on uc_emu_start() with error returned {1}: {2}\n", patternAddress,
+		MYSPDLOG_ERROR("[-]patternAddreess:0x{0:x},Failed on uc_emu_start() with error returned {1}: {2}\n", patternAddress,
 			err, uc_strerror(err));
 	}
 }

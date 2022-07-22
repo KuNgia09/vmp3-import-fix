@@ -169,6 +169,7 @@
     <ClCompile Include="SystemInformation.cpp" />
     <ClCompile Include="unicorn_emulator.cpp" />
     <ClCompile Include="vmp3_import_fix.cpp" />
+    <ClCompile Include="zydis_disasm.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApiReader.h" />
@@ -184,7 +185,8 @@
     <ClInclude Include="SystemInformation.h" />
     <ClInclude Include="Thunks.h" />
     <ClInclude Include="unicorn_emulator.h" />
-    <ClInclude Include="vmp3-import-fix.h" />
+    <ClInclude Include="vmp3_import_fix.h" />
+    <ClInclude Include="zydis_disam.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
