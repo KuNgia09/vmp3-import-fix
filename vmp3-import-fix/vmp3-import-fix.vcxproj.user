@@ -6,7 +6,7 @@
     <LocalDebuggerEnvironment> -p 7764 -d</LocalDebuggerEnvironment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-p 976 -d </LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-p 12740  -d </LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

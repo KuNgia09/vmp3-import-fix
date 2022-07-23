@@ -362,7 +362,7 @@ void patch_pattern_address_for_dump() {
 
 bool save_fix_dump_file(const wchar_t* full_path, const wchar_t* filename) {
 	wchar_t fix_file_path[MAX_PATH] = {};
-	wchar_t fix_filename[0x30] = { 0 };
+	wchar_t fix_filename[MAX_PATH] = { 0 };
 	getFileDirectory(fix_file_path, (wchar_t*)full_path);
 
 	wcsncpy(fix_filename, filename, wcslen(filename));

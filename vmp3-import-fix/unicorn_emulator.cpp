@@ -53,17 +53,20 @@ const static uc_x86_reg reg_x64_table[] = { UC_X86_REG_RAX ,UC_X86_REG_RCX ,UC_X
 #endif // _WIN64
 
 
-BOOL check_api_valid(stdext::hash_multimap<DWORD_PTR, ApiInfo*>::iterator& it1, ULONG_PTR address) {
-
-	it1 = apiReader.apiList.find(address);
-
-
-	if (it1 == apiReader.apiList.end()) {
-
-		return FALSE;
-
+bool check_api_valid(stdext::hash_multimap<DWORD_PTR, ApiInfo*>::iterator& it1, ULONG_PTR address) {
+	stdext::hash_multimap<DWORD_PTR, ApiInfo*>::iterator temp= ApiReader::apiList.begin();
+	while (temp != ApiReader::apiList.end()) {
+		if ((*temp).first == address) {
+			if (strlen((*temp).second->name) > 0) {
+				it1 = temp;
+				return true;
+			}
+		}
+		temp++;
 	}
-	return  TRUE;
+
+	
+	return  false;
 }
 
 static void hook_block(uc_engine* uc, uint64_t address, uint32_t size, void* user_data)
@@ -308,6 +311,9 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 
 		}
 		else {
+			if (esp0 == 0x00007FFDF6D92730) {
+				printf("stop");
+			}
 			if (!check_api_valid(it1, esp0)) {
 				g_complexPatternAddress.push_back(g_current_pattern_address);
 				uc_emu_stop(uc);
@@ -379,6 +385,7 @@ static void hook_code(uc_engine* uc, uint64_t address, uint32_t size, void* user
 	}
 
 	if (iat_patch.call_iat_mode != CALL_IAT_UNKNOWN) {
+		
 		strncpy(iat_patch.api_name, (*it1).second->name, strlen((*it1).second->name));
 
 		iat_patch_list.push_back(iat_patch);

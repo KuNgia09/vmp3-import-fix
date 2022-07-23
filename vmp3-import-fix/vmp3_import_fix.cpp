@@ -504,12 +504,12 @@ int main(int argc, char** argv)
 
 		apiReader.readApisFromModuleList();
 
-		int apiSize = apiReader.apiList.size();
+		int apiSize = ApiReader::apiList.size();
 
 		for (auto patternAddress : pattern_address_list) {
 
 			g_current_pattern_address = patternAddress;
-			
+			printf("start emualte pattern address:%p\n", g_current_pattern_address);
 			unicorn_emulate_pattern_address(patternAddress);
 		}
 		handle_complex_iat();
