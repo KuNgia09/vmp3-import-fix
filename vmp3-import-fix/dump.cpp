@@ -14,13 +14,11 @@ using namespace blackbone;
 
 extern ULONG_PTR g_image_load_address;
 extern ULONG_PTR g_image_base_address;
-
 extern ULONG_PTR g_image_buffer;
-
 extern ULONG g_image_size;
 extern std::vector<IAT_PATCH> iat_patch_list;
 extern std::vector<ULONG_PTR> iat_import_module_list;
-
+extern std::shared_ptr<spdlog::logger> logger;
 
 
 
@@ -154,9 +152,15 @@ int calcu_rebuild_import_table_size() {
 		import_builder.second.dllNameRVA = import_table_string_offset + string_len;
 		string_len+=strlen(import_builder.second.szDllName)+1;
 		for (auto& import_builder_detail : import_builder.second.import_builder_detail_list) {	
-			//For Win32
-			import_builder_detail.original_first_thunk_va = original_first_thunk_offset+g_image_base_address;
 
+
+#ifdef _WIN64
+			import_builder_detail.original_first_thunk_va = original_first_thunk_offset;
+#else
+			import_builder_detail.original_first_thunk_va = original_first_thunk_offset + g_image_base_address;
+#endif
+			
+			
 			import_builder_detail.original_first_thunk_content_rva = import_table_string_offset + string_len;
 			original_first_thunk_offset += sizeof(IMAGE_THUNK_DATA);
 			string_len += 2;
@@ -164,7 +168,7 @@ int calcu_rebuild_import_table_size() {
 		}
 		original_first_thunk_offset += sizeof(IMAGE_THUNK_DATA);
 	}
-	sum_size = original_first_thunk_offset + g_import_desc_size +string_len;
+	sum_size = first_thunk_size + g_import_desc_size +string_len;
 	return sum_size;
 
 }
@@ -339,7 +343,8 @@ void patch_pattern_address_for_dump() {
 		int call_iat_mode = iat_patch.call_iat_mode;
 		if (call_iat_mode != CALL_IAT_UNKNOWN) {
 			//使用zydis encoder
-			code_len = AssembleCallIAT(code, sizeof(code), call_iat_mode, iat_patch.iat_address, iat_patch.patch_address, iat_patch.reg_index);
+
+			code_len = AssembleCallIAT(code, sizeof(code), call_iat_mode, iat_patch.iat_address, iat_patch.patch_address-g_image_load_address, iat_patch.reg_index);
 			if (code_len == 5 || code_len == 6) {
 				//pattern_address 指向 First Thunk
 				ULONG offset = iat_patch.patch_address - g_image_load_address;
@@ -399,5 +404,5 @@ void rebuild_import_table(ULONG_PTR oep,const wchar_t* full_path,const wchar_t* 
 
 	fix_oep(oep);
 	patch_pattern_address_for_dump();
-	
+	save_fix_dump_file(full_path, filename);
 }

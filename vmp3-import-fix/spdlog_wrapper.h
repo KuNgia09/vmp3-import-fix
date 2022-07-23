@@ -1,6 +1,6 @@
 #pragma once
 
-//#define MYSPDLOG_LOG_FILE
+#define MYSPDLOG_LOG_FILE
 #ifdef MYSPDLOG_LOG_FILE
 
 #define MYSPDLOG_INFO logger->info

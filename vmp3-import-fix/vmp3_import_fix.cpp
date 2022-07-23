@@ -49,23 +49,16 @@ ULONG g_image_size;
 ULONG_PTR g_image_buffer;
 std::shared_ptr<spdlog::logger> logger;
 std::vector<IAT_PATCH> iat_patch_list;
-Process process;
-//std::map<ULONG_PTR, IMPORT_BUILDER>  import_builder_map;
+
+bool is_use_iat_section = false;
 
 
 
 
-ULONG_PTR get_target_addr(diasm_wrapper_t& disasm_wrapper, size_t n, ULONG_PTR* calcuAddress)
-{
-	uint64_t out_addr;
-	ZydisCalcAbsoluteAddress(&disasm_wrapper.instruction, &disasm_wrapper.operands[n], disasm_wrapper.runtime_addr, &out_addr);
-	*calcuAddress = (ULONG_PTR)out_addr;
-	return 0;
-}
 
 void filter_pattern_address(ULONG_PTR imageBase, DWORD imageSize, void* peBuffer, std::vector<ptr_t> addressResult, DWORD sectionBase, DWORD sectionSize) {
 	ULONG_PTR calcuAddress;
-	diasm_wrapper_t disasm_wrapper;
+	DIASM_WRAPPER disasm_wrapper;
 	for (auto temp : addressResult) {
 		ULONG_PTR resultItem = (ULONG_PTR)temp;
 		ULONG_PTR offset = resultItem - imageBase;
@@ -75,7 +68,7 @@ void filter_pattern_address(ULONG_PTR imageBase, DWORD imageSize, void* peBuffer
 		calcuAddress = 0;
 		if (*(unsigned char*)target_address == 0xE8 && disasm(disasm_wrapper, target_address, 5)) {
 
-			get_target_addr(disasm_wrapper, 0, &calcuAddress);
+			get_disasm_calcu_address(disasm_wrapper, 0, &calcuAddress);
 
 			//跳转地址在image之外
 			if (calcuAddress > imageBase + imageSize || calcuAddress < imageBase) {
@@ -153,7 +146,7 @@ ULONG_PTR get_oep(Process& process) {
 void get_import_module_api_list() {
 	StringConversion stringConversion;
 	std::set<ULONG_PTR> echmodule_api_set;
-	IMPORT_BUILDER import_builder;
+	
 
 	for (auto& iat_import_module : iat_import_module_list) {
 		echmodule_api_set.clear();
@@ -171,7 +164,7 @@ void get_import_module_api_list() {
 		char buffer[0x100];
 		stringConversion.ToASCII(tempModule.fullPath, buffer, sizeof(buffer));
 
-		strncpy(import_builder.szDllName, buffer, strlen(buffer));
+		
 
 		MYSPDLOG_INFO("[+]import dll base 0x{0:x},dll name:{1},import each api num:{2}", iat_import_module, buffer, echmodule_api_set.size());
 
@@ -343,6 +336,27 @@ void set_up() {
 	MYSPDLOG_INFO("Debug logger setup done. \n");
 }
 
+bool fix_iat_inmemory() {
+#ifdef  _WIN64
+	if (!is_use_iat_section) {
+		SPDLOG_WARN("in WIN64, offset between call  VirtualAlloc return Address and pattern address that is larger than 4GB,we can't patch IAT in memory,please set a section storage new IAT");
+		return false;
+	}
+#endif //  
+
+	if (!buildIAT()) {
+		MYSPDLOG_ERROR("build IAT failed\n");
+		return false;
+	}
+	if (!set_patch_iat_address()) {
+		MYSPDLOG_ERROR("set patch iat addrress failed\n");
+		return false;
+	}
+	MYSPDLOG_INFO("start patch pattern address");
+	patch_pattern_address_inmemory();
+	return true;
+}
+
 
 
 
@@ -374,8 +388,10 @@ int main(int argc, char** argv)
 		.append();
 
 	program.add_argument("-i", "--iat")
-		.help("new iat section ")
-		.default_value(std::string(".vmp0"));
+		.help("section that is used to storage new IAT ,it maybe destroy vmp code")
+		.default_value<std::string>("random");
+		
+		
 
 	program.add_argument("-d", "--dump")
 		.help("dump and build import section ")
@@ -403,13 +419,13 @@ int main(int argc, char** argv)
 	auto exclude_sections = program.get<std::vector<std::string>>("--sections");
 	auto new_iat_section_name = program.get<std::string>("--iat");
 	MYSPDLOG_INFO("Target process id:{}", pid);
-	MYSPDLOG_INFO("new iat section name:{}", new_iat_section_name);
+	
 	for (auto& sec : exclude_sections) {
 		MYSPDLOG_INFO("ignore section name:{0}", (char*)sec.c_str());
 	}
 
 	string mod_name = "";
-	
+	Process process;
 	if (NT_SUCCESS(process.Attach(pid))) {
 		auto& memory = process.memory();
 		auto& modules = process.modules();
@@ -434,20 +450,29 @@ int main(int argc, char** argv)
 		pe::PEImage peImage;
 		peImage.Parse(buffer);
 		
-
-		if (new_iat_section_name.length()) {
-
+		if (new_iat_section_name == "random") {
+			MYSPDLOG_INFO("using VirtualAlloc storage new IAT  ");
+		}
+		else {
+			
 			for (auto& section_info : peImage.sections()) {
 				int result = strncmp(new_iat_section_name.c_str(), (char*)section_info.Name, strlen(new_iat_section_name.c_str()));
 				if (result == 0) {
+					MYSPDLOG_INFO("using section {} storage new IAT  ", new_iat_section_name.c_str());
+					is_use_iat_section = true;
 					g_iat_address = g_image_load_address + section_info.VirtualAddress;
 					break;
 				}
 
 			}
+			if (!is_use_iat_section) {
+				MYSPDLOG_ERROR("could not find  section that is used to storage  IAT");
+				return 0;
+			}
 
 		}
-
+		
+		
 		for (auto section : peImage.sections()) {
 			if ((section.Characteristics & IMAGE_SCN_MEM_EXECUTE) && std::find(exclude_sections.begin(), exclude_sections.end(), (char*)section.Name) == exclude_sections.end()) {
 
@@ -490,28 +515,21 @@ int main(int argc, char** argv)
 		handle_complex_iat();
 
 		get_iat_module();
-
+		get_import_module_api_list();
+		fix_iat_inmemory();
 
 		if (program["-d"] == true) {
-			MYSPDLOG_ERROR("start dump and build import section");
+			MYSPDLOG_INFO("start dump and build import section");
 			ULONG_PTR oep=get_oep(process);
 			const wchar_t* fullPath = target_m->fullPath.c_str();
 			const wchar_t* process_name = target_m->name.c_str();
+			//dump memory,rebuild import table and save to file
 			rebuild_import_table(oep,fullPath,process_name);
 
 		}
 
-		get_import_module_api_list();
-		if (!buildIAT()) {
-			MYSPDLOG_ERROR("build IAT failed\n");
-			return 0;
-		}
-		if (!set_patch_iat_address()) {
-			MYSPDLOG_ERROR("set patch iat addrress failed\n");
-			return 0;
-		}
-		MYSPDLOG_INFO("start patch pattern address");
-		//patch_pattern_address_inmemory();
+		
+		
 
 		free(buffer);
 

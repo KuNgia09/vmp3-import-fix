@@ -2,6 +2,15 @@
 #include"zydis_disam.h"
 #include"vmp3_import_fix.h"
 
+
+ULONG_PTR get_disasm_calcu_address(DIASM_WRAPPER& disasm_wrapper, size_t n, ULONG_PTR* calcuAddress)
+{
+	uint64_t out_addr;
+	ZydisCalcAbsoluteAddress(&disasm_wrapper.instruction, &disasm_wrapper.operands[n], disasm_wrapper.runtime_addr, &out_addr);
+	*calcuAddress = (ULONG_PTR)out_addr;
+	return 0;
+}
+
 static void AppendInstruction(const ZydisEncoderRequest* req, ZyanU8** buffer,
 	ZyanUSize* buffer_length)
 {
@@ -15,7 +24,7 @@ static void AppendInstruction(const ZydisEncoderRequest* req, ZyanU8** buffer,
 	*buffer_length -= instr_length;
 }
 
-bool disasm(diasm_wrapper_t& disasm_wrapper, ULONG_PTR data, int length) {
+bool disasm(DIASM_WRAPPER& disasm_wrapper, ULONG_PTR data, int length) {
 
 	// Initialize decoder context
 	ZydisDecoder decoder;
@@ -61,7 +70,7 @@ bool disasm(diasm_wrapper_t& disasm_wrapper, ULONG_PTR data, int length) {
 
 
 
-ZyanUSize AssembleCallIAT(ZyanU8* buffer, ZyanUSize buffer_length, int call_iat_mode, ULONG_PTR iat_address, ULONG_PTR patch_address, int reg_index) {
+ZyanUSize AssembleCallIAT(ZyanU8* buffer, ZyanUSize buffer_length, int call_iat_mode, ULONG_PTR iat_address, ULONG_PTR insturction_address, int reg_index) {
 	assert(buffer);
 	assert(buffer_length);
 
@@ -87,7 +96,7 @@ ZyanUSize AssembleCallIAT(ZyanU8* buffer, ZyanUSize buffer_length, int call_iat_
 		req.operands[0].mem.size = sizeof(ULONG_PTR);
 #ifdef _WIN64
 		req.operands[0].mem.base = ZYDIS_REGISTER_RIP;
-		req.operands[0].mem.displacement = iat_address - patch_address - 6;
+		req.operands[0].mem.displacement = iat_address - insturction_address - 6;
 #else
 
 		req.operands[0].mem.base = ZYDIS_REGISTER_NONE;
@@ -109,7 +118,7 @@ ZyanUSize AssembleCallIAT(ZyanU8* buffer, ZyanUSize buffer_length, int call_iat_
 
 #ifdef _WIN64
 		req.operands[0].mem.base = ZYDIS_REGISTER_RIP;
-		req.operands[0].mem.displacement = iat_address - patch_address - 6;
+		req.operands[0].mem.displacement = iat_address - insturction_address - 6;
 #else
 		req.operands[0].mem.base = ZYDIS_REGISTER_NONE;
 		req.operands[0].mem.displacement = iat_address;
