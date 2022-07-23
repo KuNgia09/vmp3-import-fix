@@ -2,9 +2,9 @@
 
 This Program is a dynamic x86/x64 VMProtect 3.x import fixer（Tested on VMP3.3）. The main goal of this project was to build correct and reliable tool to fix imports in x86/x64 applications.
 
-Note: this tool does not dump and rebuild import directory. 
+Note: **this tool can dump and rebuild import directory**. 
 
-​	  Fix 32bit program,please use 32bit version,vice versa.
+​	  **Fix 32bit program,please use 32bit version,vice versa**.
 
 ## Before
 
@@ -18,19 +18,25 @@ new IAT:
 
 ![image-20220716110043838](README.assets/image-20220716110043838.png)
 
+## Compile
+
+VS2019
+
 ## Usage
 
-![image-20220716110450903](README.assets/image-20220716110450903.png)
+![image-20220723214955839](README.assets/image-20220723214955839.png)
 
 **-p**:target process pid
 
 **-s**:This tool first search call IAT address in sections,-s option specify ignore  sections default [`.vmp0,.vmp1,.vmp2`]
 
-**-d**:new IAT location default `.vmp0` section. If `.vmp0` section doesn't exist,this tool will use **VirtualAlloc** alloc memory that is used to store IAT content
+**-i**:specify the section that is used to storage IAT in memory,if you don't  specify this option, this tool default will use **VirtualAlloc** alloc memory that is used to store IAT content
+
+**-d**:dump file and rebuild import table
 
 
 
-Tips:**VMProtect unpacking must be complete before running this tool**
+Tips:**VMProtect unpacking must be complete before running this tool**,
 
 Example:
 
@@ -40,7 +46,31 @@ when target program is reach to OEP
 
 execute this tool
 
- `.\vmp3-import-fix.exe -p 31652`
+ `.\vmp3-import-fix.exe -p 31652 `
+
+if you want dump and rebuild import table
+
+`.\vmp3-import-fix.exe -p 31652 -d`
+
+
+
+if you want dump,rebuild import table and fix new iat in `.vmp0` section
+
+`.\vmp3-import-fix.exe -p 31652 -d -i ".vmp0"`
+
+
+
+below is dump and fix import table result for **ida.vmp.exe**
+
+
+
+![image-20220723215541893](README.assets/image-20220723215541893.png)
+
+new IAT section in the last section
+
+![image-20220723215557934](README.assets/image-20220723215557934.png)
+
+
 
 
 
@@ -52,7 +82,7 @@ you can see log  file in `log/logger.txt`
 
 
 
-After Fix IAT ,you can use scylla tool to fix Import Directory
+
 
 
 
