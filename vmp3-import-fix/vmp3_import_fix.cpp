@@ -442,7 +442,8 @@ int main(int argc, char** argv)
 			return 0;
 		}
 		g_image_load_address = target_m->baseAddress;
-		g_image_base_address = g_image_load_address;
+		
+		
 		g_image_size = target_m->size;
 		g_image_buffer = (ULONG_PTR)buffer;
 		memory.Read(target_m->baseAddress, target_m->size, buffer);
@@ -450,6 +451,11 @@ int main(int argc, char** argv)
 		pe::PEImage peImage;
 		peImage.Parse(buffer);
 		
+		
+
+		IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)((ULONG_PTR)buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
+		g_image_base_address = p_nt_header->OptionalHeader.ImageBase;
+
 		if (new_iat_section_name == "random") {
 			MYSPDLOG_INFO("using VirtualAlloc storage new IAT  ");
 		}

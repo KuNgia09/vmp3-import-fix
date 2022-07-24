@@ -265,7 +265,7 @@ bool build_import_section() {
 void addSectionHeader() {
 	
 	
-	IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)(g_dump_image_buffer + 0x80);
+	IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)((ULONG_PTR)g_dump_image_buffer + ((PIMAGE_DOS_HEADER)g_dump_image_buffer)->e_lfanew);
 
 	int section_num = p_nt_header->FileHeader.NumberOfSections;
 	MYSPDLOG_INFO("section num {}", section_num);
@@ -296,16 +296,19 @@ void addSectionHeader() {
 	p_nt_header->FileHeader.NumberOfSections = section_num + 1;
 }
 
-void fix_oep(ULONG_PTR oep) {
+void fix_pe_header(ULONG_PTR oep) {
 	
-	IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)(g_dump_image_buffer + 0x80);
+	IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)((ULONG_PTR)g_dump_image_buffer + ((PIMAGE_DOS_HEADER)g_dump_image_buffer)->e_lfanew);
+	
 	p_nt_header->OptionalHeader.AddressOfEntryPoint = oep-g_image_load_address;
 	p_nt_header->OptionalHeader.SizeOfImage = g_dump_image_size;
 	p_nt_header->OptionalHeader.FileAlignment = 0x1000;
+	
+	p_nt_header->OptionalHeader.DllCharacteristics = p_nt_header->OptionalHeader.DllCharacteristics & (~IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
 }
 
 void fix_data_directory() {
-	IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)(g_dump_image_buffer + 0x80);
+	IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)((ULONG_PTR)g_dump_image_buffer + ((PIMAGE_DOS_HEADER)g_dump_image_buffer)->e_lfanew);
 	//指向新的import table
 	p_nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = g_import_table_desc_rva;
 	p_nt_header->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size=g_import_desc_size;
@@ -334,7 +337,7 @@ void patch_pattern_address_for_dump() {
 			}
 		}
 	}
-
+	
 	BYTE code[0x20];
 
 	int code_len;
@@ -360,6 +363,13 @@ void patch_pattern_address_for_dump() {
 	}
 }
 
+
+void remove_alsr() {
+
+}
+
+
+
 bool save_fix_dump_file(const wchar_t* full_path, const wchar_t* filename) {
 	wchar_t fix_file_path[MAX_PATH] = {};
 	wchar_t fix_filename[MAX_PATH] = { 0 };
@@ -383,7 +393,9 @@ bool save_fix_dump_file(const wchar_t* full_path, const wchar_t* filename) {
 		WriteFile(hFile, (void*)g_dump_image_buffer, g_dump_image_size, &dwWrite, NULL);
 	}
 	CloseHandle(hFile);
-	//MYSPDLOG_INFO("Write fix dump file sucess:{}", fix_file_path);
+	char buffer[MAX_PATH] = { 0 };
+	StringConversion::ToASCII(fix_file_path, buffer, sizeof(buffer));
+	MYSPDLOG_INFO("Write fix dump file sucess:{}", (char*)buffer);
 	return true;
 }
 
@@ -402,7 +414,7 @@ void rebuild_import_table(ULONG_PTR oep,const wchar_t* full_path,const wchar_t* 
 
 	fix_data_directory();
 
-	fix_oep(oep);
+	fix_pe_header(oep);
 	patch_pattern_address_for_dump();
 	save_fix_dump_file(full_path, filename);
 }
