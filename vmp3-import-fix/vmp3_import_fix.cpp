@@ -453,8 +453,7 @@ int main(int argc, char** argv)
 		
 		
 
-		IMAGE_NT_HEADERS* p_nt_header = (IMAGE_NT_HEADERS*)((ULONG_PTR)buffer + ((PIMAGE_DOS_HEADER)buffer)->e_lfanew);
-		g_image_base_address = p_nt_header->OptionalHeader.ImageBase;
+		
 
 		if (new_iat_section_name == "random") {
 			MYSPDLOG_INFO("using VirtualAlloc storage new IAT  ");

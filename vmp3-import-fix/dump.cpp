@@ -13,7 +13,6 @@
 using namespace blackbone;
 
 extern ULONG_PTR g_image_load_address;
-extern ULONG_PTR g_image_base_address;
 extern ULONG_PTR g_image_buffer;
 extern ULONG g_image_size;
 extern std::vector<IAT_PATCH> iat_patch_list;
@@ -157,7 +156,7 @@ int calcu_rebuild_import_table_size() {
 #ifdef _WIN64
 			import_builder_detail.original_first_thunk_va = original_first_thunk_offset;
 #else
-			import_builder_detail.original_first_thunk_va = original_first_thunk_offset + g_image_base_address;
+			import_builder_detail.original_first_thunk_va = original_first_thunk_offset + g_image_load_address;
 #endif
 			
 			
