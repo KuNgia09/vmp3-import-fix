@@ -1,10 +1,14 @@
-# VMProtect 3.x IAT Fix
+# VMProtect 3.x IAT Fix and Rebuild Import Table
 
-This Program is a dynamic x86/x64 VMProtect 3.x import fixer（Tested on VMP3.3）. The main goal of this project was to build correct and reliable tool to fix imports in x86/x64 applications.
+This Program is a dynamic x86/x64 VMProtect 3. x import fixer（Tested on VMP3.3）. The main goal of this project was to build a correct and reliable tool to fix imports in x86/x64 applications.
 
-Note: **this tool can dump and rebuild import directory**. 
+Note: T**his tool can dump and rebuild import directory**. 
 
-​	  **Fix 32bit program,please use 32bit version,vice versa**.
+​	 **Fix the 32bit program please use the 32bit version, and vice versa**.
+
+
+
+
 
 ## Before
 
@@ -26,41 +30,39 @@ VS2019
 
 ![image-20220723214955839](README.assets/image-20220723214955839.png)
 
-**-p**:target process pid
-
-**-s**:This tool first search call IAT address in sections,-s option specify ignore  sections default [`.vmp0,.vmp1,.vmp2`]
-
-**-i**:specify the section that is used to storage IAT in memory,if you don't  specify this option, this tool default will use **VirtualAlloc** alloc memory that is used to store IAT content
-
-**-d**:dump file and rebuild import table
+**-Usage
 
 
 
-Tips:**VMProtect unpacking must be complete before running this tool**,
+**-p**: target process PID
+
+**-s**:This tool first search call IAT address in sections,-s option specify ignore sections default [.vmp0,.vmp1,.vmp2]
+
+**-i**: specify the section that is used to store IAT in memory, if you don't specify this option, this tool default will use **VirtualAlloc** to allocate memory that is used to store IAT content
+
+**-d**: dump file and rebuild import table
+
+Tips: **VMProtect unpacking must be complete before running this tool**,
 
 Example:
 
-when target program is reach to OEP
+when The target program reaches  OEP
 
 ![image-20220716111549696]( README.assets/image-20220716111549696.png)
 
 execute this tool
 
- `.\vmp3-import-fix.exe -p 31652 `
+ `.\vmp3-import-fix.exe -p 31652`
 
-if you want dump and rebuild import table
+if you want to dump and rebuild import table
 
 `.\vmp3-import-fix.exe -p 31652 -d`
 
-
-
-if you want dump,rebuild import table and fix new iat in `.vmp0` section
+if you want to  dump, rebuild import table , and fix the new IAT in .vmp0 section
 
 `.\vmp3-import-fix.exe -p 31652 -d -i ".vmp0"`
 
-
-
-below is dump and fix import table result for **ida.vmp.exe**
+below is the result that has dumped and fixed import table for **ida.vmp.exe**
 
 
 
@@ -74,7 +76,7 @@ new IAT section in the last section
 
 
 
-you can see log  file in `log/logger.txt` 
+you can see the  log file in log/logger.txt 
 
 ![image-20220716111801572](README.assets/image-20220716111801572.png)
 
@@ -90,7 +92,7 @@ you can see log  file in `log/logger.txt`
 
 
 
-VMProtect encrypt IAT through 3 modes
+VMProtect encrypts IAT through 3 modes
 
 1. call ret or call int3 or call 0xXX
 2. push call
@@ -125,7 +127,7 @@ at address 0x0040D87F,code **`call   ds:FlushFileBuffers`** has changed to `call
 
 
 
-we follow encrypt IAT code,below code analyze process that VMProtect decrypt API Address
+we follow encrypt IAT code,below codes analyze the process that VMProtect decrypts API Address
 
 ```asm
 004C61CC | 55                         | push ebp                                                   |保存ebp
