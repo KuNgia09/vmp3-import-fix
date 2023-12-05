@@ -382,6 +382,10 @@ int main(int argc, char** argv)
 		.required()
 		.scan<'d', int>();
 
+	program.add_argument("-m", "--module")
+		.help("Target module name")
+		.default_value<std::string>("");
+
 	program.add_argument("-s", "--sections")
 		.help("VMProtect sections in target module")
 		.default_value<std::vector<std::string>>({ ".vmp0", ".vmp1", ".vmp2" })
@@ -398,8 +402,6 @@ int main(int argc, char** argv)
 		.default_value(false)
 		.implicit_value(true);
 
-		
-
 	try
 	{
 		program.parse_args(argc, argv);
@@ -415,7 +417,6 @@ int main(int argc, char** argv)
 
 	
 	auto pid = program.get<int>("--pid");
-	//pid = 5096;
 	auto exclude_sections = program.get<std::vector<std::string>>("--sections");
 	auto new_iat_section_name = program.get<std::string>("--iat");
 	MYSPDLOG_INFO("Target process id:{}", pid);
@@ -424,7 +425,8 @@ int main(int argc, char** argv)
 		MYSPDLOG_INFO("ignore section name:{0}", (char*)sec.c_str());
 	}
 
-	string mod_name = "";
+	string mod_name = program.get<std::string>("--module");
+	MYSPDLOG_INFO("Target module name:{0}", (char*)mod_name.c_str());
 	Process process;
 	if (NT_SUCCESS(process.Attach(pid))) {
 		auto& memory = process.memory();
@@ -514,7 +516,7 @@ int main(int argc, char** argv)
 		for (auto patternAddress : pattern_address_list) {
 
 			g_current_pattern_address = patternAddress;
-			printf("start emualte pattern address:%p\n", g_current_pattern_address);
+			printf("start emulate pattern address:%p\n", g_current_pattern_address);
 			unicorn_emulate_pattern_address(patternAddress);
 		}
 		handle_complex_iat();
